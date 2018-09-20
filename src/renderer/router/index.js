@@ -8,7 +8,10 @@ export default new Router({
     {
       path: '/target',
       name: 'target',
-      component: require('@/components/target/index').default
+      component: require('@/components/target/index').default,
+      meta: {
+        keepAlive: true // 需要被缓存
+      }
     },
     {
       path: '/set',

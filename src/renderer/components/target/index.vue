@@ -11,15 +11,15 @@
         </md-field>
       </md-table-toolbar>
 
-      <md-table-empty-state md-label="No users found" :md-description="`No user found for this '${search}' query. Try a different search term or create a new user.`">
-        <md-button class="md-primary md-raised" @click="newUser">正在加载行情</md-button>
+      <md-table-empty-state md-label="No Associated Currency" :md-description="``">
+        <md-button class="md-primary md-raised" @click="newUser">Add The Currency</md-button>
       </md-table-empty-state>
 
       <md-table-row slot="md-table-row" slot-scope="{ item }">
         <md-table-cell md-label="Symbol" md-sort-by="symbol">{{ item.symbol.replace('usdt','/usdt').toLocaleUpperCase() }}</md-table-cell>
-        <md-table-cell md-label="当前价" md-sort-by="close">{{ item.close }}</md-table-cell>
-        <md-table-cell md-label="开盘价" md-sort-by="open">{{ item.open }}</md-table-cell>
-        <md-table-cell md-label="今天最高价" md-sort-by="high">{{ item.high }}</md-table-cell>
+        <md-table-cell md-label="当前价" md-sort-by="close">${{ item.close }}</md-table-cell>
+        <md-table-cell md-label="开盘价" md-sort-by="open">${{ item.open }}</md-table-cell>
+        <md-table-cell md-label="今天最高价" md-sort-by="high">${{ item.high }}</md-table-cell>
 
       </md-table-row>
     </md-table>
@@ -28,6 +28,8 @@
 
 <script>
 import { ipcRenderer } from 'electron'
+import WebSocket from 'ws'
+import pako from 'pako'
 const toLower = text => {
   return text.toString().toLowerCase()
 }
@@ -41,10 +43,11 @@ const searchByName = (items, term) => {
 }
 
 export default {
-  name: 'TableSearch',
   data: () => ({
     search: null,
     searched: [],
+    orderbook: {},
+    WS_URL: 'wss://api.huobi.br.com/ws',
     usdt: ['ethusdt', 'btcusdt'],
     users: []
   }),
@@ -74,20 +77,94 @@ export default {
       // for (var i of data) {
       //   console.log(i)
       // }
+    },
+    handle(data) {
+      // console.log('received', data.ch, 'data.ts', data.ts, 'crawler.ts', moment().format('x'));
+      let symbol = data.ch.split('.')[1]
+      let channel = data.ch.split('.')[2]
+      switch (channel) {
+        case 'depth':
+          orderbook[symbol] = data.tick
+          console.log('depth', data.tick)
+          break
+        case 'kline':
+          data.tick.symbol = symbol
+          this.orderbook[symbol] = data.tick
+          this.cover(this.orderbook)
+          // console.log('kline', data.tick);
+          break
+      }
+    },
+
+    subscribe(ws) {
+      var symbols = ['ethusdt', 'btcusdt']
+      // 订阅深度
+      // 谨慎选择合并的深度，ws每次推送全量的深度数据，若未能及时处理容易引起消息堆积并且引发行情延时
+      // for (let symbol of symbols) {
+      //     ws.send(JSON.stringify({
+      //         "sub": `market.${symbol}.depth.step0`,
+      //         "id": `${symbol}`
+      //     }));
+      // }
+      // 订阅K线
+      for (let symbol of symbols) {
+        ws.send(
+          JSON.stringify({
+            sub: `market.${symbol}.kline.1day`,
+            id: `${symbol}`
+          })
+        )
+      }
+    },
+
+    init() {
+      var ws = new WebSocket(this.WS_URL)
+      ws.on('open', () => {
+        console.log('open')
+        this.subscribe(ws)
+      })
+      ws.on('message', data => {
+        let text = pako.inflate(data, {
+          to: 'string'
+        })
+        let msg = JSON.parse(text)
+        if (msg.ping) {
+          // console.log(msg);
+          ws.send(
+            JSON.stringify({
+              pong: msg.ping
+            })
+          )
+        } else if (msg.tick) {
+          // console.log(msg);
+          this.handle(msg)
+        } else {
+          console.log(text)
+        }
+      })
+      ws.on('close', () => {
+        console.log('close')
+        this.init()
+      })
+      ws.on('error', err => {
+        console.log('error', err)
+        this.init()
+      })
     }
   },
   mounted() {
     this.searched = this.users
-    var hast = this
-    ipcRenderer.on('market', (event, arg) => {
-      hast.cover(arg)
-      setTimeout(() => {
-        ipcRenderer.send('market')
-      }, 3000)
-    })
-    setTimeout(() => {
-      ipcRenderer.send('market')
-    }, 2000)
+    this.init()
+    // var hast = this
+    // ipcRenderer.on('market', (event, arg) => {
+    //   hast.cover(arg)
+    //   setTimeout(() => {
+    //     ipcRenderer.send('market')
+    //   }, 3000)
+    // })
+    // setTimeout(() => {
+    //   ipcRenderer.send('market')
+    // }, 2000)
   }
 }
 </script>

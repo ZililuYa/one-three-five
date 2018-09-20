@@ -2,6 +2,9 @@
   <div id="app">
     <Header>
       <router-view></router-view>
+      <keep-alive>
+        <router-view></router-view>
+      </keep-alive>
     </Header>
     <!-- <router-view></router-view> -->
   </div>
