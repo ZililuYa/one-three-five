@@ -16,23 +16,20 @@
       </md-table-empty-state>
 
       <md-table-row slot="md-table-row" slot-scope="{ item }">
-        <template v-show="item.switch">
-          <md-table-cell md-label="Symbol" md-sort-by="symbol">{{ item.name.toUpperCase() }}</md-table-cell>
-          <md-table-cell md-label="涨幅" md-sort-by="percent">{{ orderbook[item.name] ? orderbook[item.name].percent:'...' }}%</md-table-cell>
-          <md-table-cell :class="orderbook[item.name] ? orderbook[item.name].float:''" md-label="当前价" md-sort-by="close">{{ orderbook[item.name] ? orderbook[item.name].close:'...' }}</md-table-cell>
-          <md-table-cell md-label="开盘价">{{ orderbook[item.name] ? orderbook[item.name].open:'...' }}</md-table-cell>
-          <md-table-cell md-label="今天最高价">{{ orderbook[item.name] ? orderbook[item.name].high:'...' }}</md-table-cell>
-          <md-table-cell md-label="13均价">{{kLineResult[item.name]?kLineResult[item.name].a:'...'}}</md-table-cell>
-          <md-table-cell md-label="34均价">{{kLineResult[item.name]?kLineResult[item.name].b:'...'}}</md-table-cell>
-          <md-table-cell md-label="55均价">{{kLineResult[item.name]?kLineResult[item.name].c:'...'}}</md-table-cell>
-        </template>
+        <md-table-cell md-label="Symbol" md-sort-by="symbol">{{ item.name.toUpperCase() }}</md-table-cell>
+        <md-table-cell md-label="涨幅" md-sort-by="percent">{{ orderbook[item.name] ? orderbook[item.name].percent:'...' }}%</md-table-cell>
+        <md-table-cell :class="orderbook[item.name] ? orderbook[item.name].float:''" md-label="DAY-NOW" md-sort-by="close">{{ orderbook[item.name] ? orderbook[item.name].close:'...' }}</md-table-cell>
+        <md-table-cell md-label="DAY-OPEN">{{ orderbook[item.name] ? orderbook[item.name].open:'...' }}</md-table-cell>
+        <md-table-cell md-label="DAY-HIGH">{{ orderbook[item.name] ? orderbook[item.name].high:'...' }}</md-table-cell>
+        <md-table-cell md-label="MA13">{{kLineResult[item.name]?kLineResult[item.name].a:'...'}}</md-table-cell>
+        <md-table-cell md-label="MA34">{{kLineResult[item.name]?kLineResult[item.name].b:'...'}}</md-table-cell>
+        <md-table-cell md-label="MA55">{{kLineResult[item.name]?kLineResult[item.name].c:'...'}}</md-table-cell>
       </md-table-row>
     </md-table>
   </div>
 </template>
 
 <script>
-import { ipcRenderer } from 'electron'
 import WebSocket from 'ws'
 import pako from 'pako'
 const toLower = text => {
@@ -55,6 +52,7 @@ export default {
     WS_URL: 'wss://api.huobi.br.com/ws',
     kLineData: {},
     kLineResult: {},
+    timing: '',
     usdt: [
       { name: 'ethusdt', switch: true },
       { name: 'btcusdt', switch: true }
@@ -95,7 +93,7 @@ export default {
           data.tick.percent = this.calculateGains(
             data.tick.close,
             data.tick.open
-          ).toFixed(2)
+          )
           this.$set(this.orderbook, symbol, data.tick)
           // this.cover(this.orderbook)
           // console.log('kline', data.tick);
@@ -127,7 +125,6 @@ export default {
         } else {
           let pc = price / num
           let close = this.kLineData[name][len - i - 1].close.toString()
-          console.log(close)
           if (close.split('.')[0] === '0') {
             return pc.toFixed(close.split('.')[1].length)
           }
@@ -135,9 +132,17 @@ export default {
         }
       }
     },
+    timingFun() {
+      // 定时刷新
+      if (this.timing) window.clearTimeout(this.timing)
+      this.timing = window.setTimeout(function() {
+        window.location.reload()
+      }, 1000 * 30)
+    },
     handle(data) {
       // console.log('received', data.ch, 'data.ts', data.ts, 'crawler.ts', moment().format('x'));
       // console.log(data)
+      this.timingFun()
       if (data.ch) this.ch(data)
       if (data.rep) this.rep(data)
     },
@@ -173,9 +178,9 @@ export default {
     },
     calculateGains(now, open) {
       if (now > open) {
-        return (now - open) / open * 100
+        return ((now - open) / open * 100).toFixed(2)
       } else if (now < open) {
-        return (open - now) / open * 100
+        return '-' + ((open - now) / open * 100).toFixed(2)
       } else {
         return 0
       }
@@ -183,7 +188,7 @@ export default {
     init() {
       var ws = new WebSocket(this.WS_URL)
       ws.on('open', () => {
-        console.log('open')
+        console.log('开始连接HuoBi服务器WS')
         this.subscribe(ws)
       })
       ws.on('message', data => {
@@ -218,10 +223,14 @@ export default {
   mounted() {
     let usdt = localStorage.getItem('USDT')
     this.usdt = usdt ? JSON.parse(usdt) : this.usdt
-    this.searched = this.usdt
+    let now = []
     for (let i of this.usdt) {
-      this.symbols.push(i.name)
+      if (i.switch) {
+        this.symbols.push(i.name)
+        now.push(i)
+      }
     }
+    this.searched = now
     this.init()
     // var hast = this
     // ipcRenderer.on('market', (event, arg) => {
