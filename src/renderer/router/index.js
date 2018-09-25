@@ -10,13 +10,17 @@ export default new Router({
       name: 'target',
       component: require('@/components/target/index').default,
       meta: {
+        keep: true,
         keepAlive: true // 需要被缓存
       }
     },
     {
       path: '/set',
       name: 'set',
-      component: require('@/components/set/index').default
+      component: require('@/components/set/index').default,
+      meta: {
+        keepAlive: false
+      }
     },
     {
       path: '/operation',

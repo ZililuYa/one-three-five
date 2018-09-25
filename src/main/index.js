@@ -1,10 +1,12 @@
 import { app, BrowserWindow, Menu, ipcMain } from 'electron'
 // let huobi = require('./huobi/demo_crawler')
-import './huobi/demo_crawler'
+// import './huobi/demo_crawler'
 
 // console.log(crawler)
 
 // ipcFun(ipcMain)
+
+
 
 /**
  * Set `__static` path to static files in production
@@ -20,14 +22,29 @@ const winURL = process.env.NODE_ENV === 'development'
   : `file://${__dirname}/index.html`
 
 function createWindow() {
+
+  ipcMain.on('min', e => mainWindow.minimize());
+  ipcMain.on('max', e => {
+    if (mainWindow.isMaximized()) {
+      mainWindow.unmaximize()
+    } else {
+      mainWindow.maximize()
+    }
+  });
+  ipcMain.on('close', e => mainWindow.close());
+
   /**
    * Initial window options
    */
   Menu.setApplicationMenu(null) // 删除菜单
   mainWindow = new BrowserWindow({
+    minHeight: 563,
     height: 563,
+    minWidth: 1000,
+    width: 1000,
     useContentSize: true,
-    width: 1000
+    transparent: false,
+    frame: false
   })
 
 

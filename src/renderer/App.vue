@@ -1,12 +1,11 @@
 <template>
   <div id="app">
     <Header>
-      <router-view></router-view>
       <keep-alive>
-        <router-view></router-view>
+        <router-view v-if="$route.meta.keepAlive"></router-view>
       </keep-alive>
+      <router-view v-if="!$route.meta.keepAlive"></router-view>
     </Header>
-    <!-- <router-view></router-view> -->
   </div>
 </template>
 
@@ -14,7 +13,8 @@
 import Header from './modules/Header.vue'
 export default {
   name: 'home',
-  components: { Header }
+  components: { Header },
+  mounted() {}
 }
 </script>
 
