@@ -99,6 +99,11 @@ export default {
           icon: 'send'
         },
         {
+          label: 'my',
+          id: 'my',
+          icon: 'send'
+        },
+        {
           label: 'earnings',
           id: 'earnings',
           icon: 'send'

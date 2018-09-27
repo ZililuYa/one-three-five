@@ -38,6 +38,11 @@ export default new Router({
       component: require('@/components/earnings/index').default
     },
     {
+      path: '/my',
+      name: 'my',
+      component: require('@/components/my/index').default
+    },
+    {
       path: '*',
       redirect: '/target'
     }

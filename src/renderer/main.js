@@ -9,6 +9,7 @@ import VueMaterial from 'vue-material'
 import 'vue-material/dist/vue-material.min.css'
 import 'vue-material/dist/theme/default.css'
 import './assets/css/font.css'
+Vue.prototype.$ws = {}
 
 Vue.use(VueMaterial)
 

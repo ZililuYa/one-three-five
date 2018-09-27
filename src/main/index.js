@@ -119,7 +119,7 @@ function setTray(win) {
     win.isVisible() ? win.setSkipTaskbar(false) : win.setSkipTaskbar(true);
   })
 
-  newNews(appTray)
+  // newNews(appTray)
 
   win.on('close', (event) => {
     win.hide();

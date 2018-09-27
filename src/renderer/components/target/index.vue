@@ -30,8 +30,7 @@
 </template>
 
 <script>
-import WebSocket from 'ws'
-import pako from 'pako'
+import { mapActions, mapState } from 'vuex'
 const toLower = text => {
   return text.toString().toLowerCase()
 }
@@ -49,10 +48,8 @@ export default {
     search: null,
     searched: [],
     orderbook: {},
-    WS_URL: 'wss://api.huobi.br.com/ws',
     kLineData: {},
     kLineResult: {},
-    timing: '',
     usdt: [
       { name: 'ethusdt', switch: true },
       { name: 'btcusdt', switch: true }
@@ -60,7 +57,18 @@ export default {
     symbols: [],
     users: []
   }),
+  watch: {
+    message: function(mes) {
+      // this.handle(mes)
+    }
+  },
+  computed: {
+    ...mapState({
+      message: state => state.ws.message
+    })
+  },
   methods: {
+    ...mapActions(['SEND']),
     newUser(name) {
       console.log(this.getKLine(name, 13))
     },
@@ -132,17 +140,9 @@ export default {
         }
       }
     },
-    timingFun() {
-      // 定时刷新
-      if (this.timing) window.clearTimeout(this.timing)
-      this.timing = window.setTimeout(function() {
-        window.location.reload()
-      }, 1000 * 30)
-    },
     handle(data) {
       // console.log('received', data.ch, 'data.ts', data.ts, 'crawler.ts', moment().format('x'));
       // console.log(data)
-      this.timingFun()
       if (data.ch) this.ch(data)
       if (data.rep) this.rep(data)
     },
@@ -157,12 +157,14 @@ export default {
       // }
       // 订阅K线
       for (let symbol of this.symbols) {
-        ws.send(
-          JSON.stringify({
-            sub: `market.${symbol}.kline.1day`,
-            id: `${symbol}sub`
-          })
-        )
+        setTimeout(() => {
+          this.SEND(
+            JSON.stringify({
+              sub: `market.${symbol}.kline.1day`,
+              id: `${symbol}sub`
+            })
+          )
+        }, 20)
       }
       // 订阅 60日 K线
       for (let symbol of this.symbols) {
@@ -173,51 +175,19 @@ export default {
           to: parseInt(new Date().getTime() / 1000)
         }
         // console.log(json)
-        ws.send(JSON.stringify(json))
+        setTimeout(() => {
+          this.SEND(JSON.stringify(json))
+        }, 20)
       }
     },
     calculateGains(now, open) {
       if (now > open) {
-        return ((now - open) / open * 100).toFixed(2)
+        return (((now - open) / open) * 100).toFixed(2)
       } else if (now < open) {
-        return '-' + ((open - now) / open * 100).toFixed(2)
+        return '-' + (((open - now) / open) * 100).toFixed(2)
       } else {
         return 0
       }
-    },
-    init() {
-      var ws = new WebSocket(this.WS_URL)
-      ws.on('open', () => {
-        console.log('开始连接HuoBi服务器WS')
-        this.subscribe(ws)
-      })
-      ws.on('message', data => {
-        let text = pako.inflate(data, {
-          to: 'string'
-        })
-        let msg = JSON.parse(text)
-        if (msg.ping) {
-          // console.log(msg);
-          ws.send(
-            JSON.stringify({
-              pong: msg.ping
-            })
-          )
-        } else if (msg.tick || msg.data) {
-          // console.log(msg);
-          this.handle(msg)
-        } else {
-          // console.log(text)
-        }
-      })
-      ws.on('close', () => {
-        console.log('close')
-        this.init()
-      })
-      ws.on('error', err => {
-        console.log('error', err)
-        this.init()
-      })
     }
   },
   mounted() {
@@ -231,7 +201,8 @@ export default {
       }
     }
     this.searched = now
-    this.init()
+    this.subscribe()
+    // this.init()
     // var hast = this
     // ipcRenderer.on('market', (event, arg) => {
     //   hast.cover(arg)
