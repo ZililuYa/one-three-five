@@ -11,8 +11,12 @@ import path from 'path';
  * Set `__static` path to static files in production
  * https://simulatedgreg.gitbooks.io/electron-vue/content/en/using-static-assets.html
  */
+let iconShow = path.join(__dirname, '../../static/icon/icon.ico')
+let iconHide = path.join(__dirname, '../../static/icon/icon1.ico')
 if (process.env.NODE_ENV !== 'development') {
   global.__static = require('path').join(__dirname, '/static').replace(/\\/g, '\\\\')
+  iconShow = path.join(__dirname, 'static/icon/icon.ico')
+  iconHide = path.join(__dirname, 'static/icon/icon1.ico')
 }
 
 let mainWindow
@@ -104,7 +108,7 @@ function setTray(win) {
   // console.log(path.join(trayIcon, 'icon.ico'))
   // trayIcon = path.join(__dirname, '../../build/icons');
 
-  appTray = new Tray(path.join(__dirname, '../../build/icons/icon.ico'));
+  appTray = new Tray(iconShow);
 
   //图标的上下文菜单
   const contextMenu = Menu.buildFromTemplate(trayMenuTemplate);
@@ -146,14 +150,14 @@ function newNews(appTray) {
   timer = setInterval(function () {
     count = !count
     if (count) {
-      appTray.setImage(path.join(__dirname, '../../build/icons/icon.ico'))
+      appTray.setImage(iconShow)
     } else {
-      appTray.setImage(path.join(__dirname, '../../build/icons/icon1.ico'))
+      appTray.setImage(iconHide)
     }
   }, 500)
 }
 
 function closeNews(appTray) {
   clearInterval(timer)
-  appTray.setImage(path.join(__dirname, '../../build/icons/icon.ico'))
+  appTray.setImage(iconShow)
 }

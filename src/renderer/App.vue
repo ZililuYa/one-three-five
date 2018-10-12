@@ -40,8 +40,10 @@ export default {
       this.ws = true
     },
     message(message) {
-      if (this.$refs.tar) this.$refs.tar.handle(message)
-      if (this.$refs.view) this.$refs.view.message(message)
+      if (this.$refs.tar && this.$refs.tar.handle)
+        this.$refs.tar.handle(message)
+      if (this.$refs.view && this.$refs.view.message)
+        this.$refs.view.message(message)
       // console.log(i, this.$refs.tar)
     }
   }
